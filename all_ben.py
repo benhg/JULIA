@@ -28,27 +28,17 @@ parsl.set_stream_logger()
 parsl.load(config)
 
 @bash_app
-def run_single_index(filename, directory):
-    import os     
-    threshold=1000
-    filename = filename.strip()
-    os.chdir(directory)
-    mvalue = str(f"{filename}")
-    mvalue = mvalue.split("/n")[0]
-    mvalue= mvalue.split('.fasta')[0]
-
-    svalue = filename.split("_")[0]
-    svalue = str(svalue.split('s')[1])
-    svalue  = int(svalue)
-    strsvalue = str(svalue)
-
+def run_single_index(filename, directory, threshold=1000):
+    import os
+    
+    mvalue = str(f"{filename}").split("/n")[0].split('.fasta')[0]
+    genomeDir = f"{directory}{mvalue}/gd"
     if not os.path.isdir(f"{directory}/{mvalue}"):
         os.makedirs(f"{directory}/{mvalue}")
-    genomeDir = f"{directory}{mvalue}/gd"
     if not os.path.isdir(genomeDir):
         os.makedirs(genomeDir)
 
-    os.chdir(directory + mvalue)  #change directory to mvalue folder we just made
+    os.chdir(f"{directory}/{mvalue}")  #change directory to mvalue folder we just made
 
     indexingstar = f'STAR --runThreadN 1 --runMode genomeGenerate --genomeDir  "{genomeDir}" --genomeFastaFiles "{directory}{filename}" --genomeSAindexNbases 2'
     return indexingstar
@@ -160,17 +150,22 @@ def star_align(filename, directory, inputs=[]):
     return alignstar
 
 def parsl_first_align(directory):
-    files = open(f"{directory}/filenames.txt")
+    files = [f.strip() for f in open(f"{directory}/filenames.txt").readlines()]
+    
+    # Start the indexing processes
     print("starting indexing")
     index_futures = []
     for file in files:
         index_futures.append(run_single_index(file, directory))
-    print("done indexing")
+    # Wait for the indexing to finish
     index_futures = [i.result() for i in index_futures]
+    print("done indexing")
+    
+    # Start the alignment processes
     align_futures = []
-    files = open(f"{directory}/filenames.txt")
     for index, file in enumerate(files):
         align_futures.append(star_align(file, directory, inputs=[index_futures[index]]))
+    # Wait for the alignment to finish
     align_futures = [a.result() for a in align_futures]
     
 def setup():
