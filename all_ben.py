@@ -3,9 +3,6 @@ import sys
 import math
 import time
 import fnmatch
-import datetime
-from datetime import datetime 
-import csv
 
 import parsl
 from parsl.app.app import python_app, bash_app
@@ -13,6 +10,8 @@ from parsl.config import Config
 from parsl.providers import GridEngineProvider
 from parsl.executors import HighThroughputExecutor
 from parsl.addresses import address_by_route
+
+from data_generation import generate_data
 
 config = Config(
     executors=[HighThroughputExecutor(worker_debug=True,cores_per_worker=16,
@@ -27,8 +26,6 @@ config = Config(
 
 parsl.set_stream_logger() 
 parsl.load(config)
-
-from data_generation import generate_data
 
 proteomefile = sys.argv[1]
 directory = f'/home/users/ellenrichards/{sys.argv[2]}/'
