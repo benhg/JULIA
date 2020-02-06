@@ -12,9 +12,7 @@ from parsl.app.app import python_app, bash_app
 from parsl.config import Config
 from parsl.providers import GridEngineProvider
 from parsl.executors import HighThroughputExecutor
-from parsl.executors import IPyParallelExecutor
-from parsl.executors import ThreadPoolExecutor
-from parsl.addresses import address_by_route, address_by_query, address_by_hostname
+from parsl.addresses import address_by_route
 
 config = Config(
     executors=[HighThroughputExecutor(worker_debug=True,cores_per_worker=16,
@@ -46,12 +44,6 @@ os.system(f"touch {directory}/final.txt")
 os.system(f"touch {directory}/never.txt")
 os.system(f"touch {directory}/maybehopper.txt")
 os.system(f"touch {directory}/index_hopping_output.txt")
-
-#csv_filename = "index_hopping_output.csv"
-#csv_fh = open(csv_filename, "write")
-#csv_writer = csv.DictWriter(csv_fh, fieldnames=["filename", "uniquely", "multi", "totalReads", "uniquelyAGAINST", "multiAGAINST", "totalReadsAGAINST", "percratio"])
-#csv_row = {"filename": "filename ", "uniquely": "uniquely ", "multi": "multi ", "totalReads": "totalreads ", "uniquelyAGAINST": "uniquelyC ", "multiAGAINST": "multiC ", "totalReadsAGAINST": "totalreadsC ", "percratio": "percRatio "}
-#csv_writer.writerow(csv_row)
 os.system(f"echo 'filename  uniquely  multi  totalReads  uniquelyAGAINST  multiAGAINST  totalreadsAGAINST  percRatio'  >> {directory}/index_hopping_output.txt")
 
 @bash_app
@@ -105,9 +97,6 @@ def run_single_align(filename):
         multiC = 'NO'
         totalreadsC = 'NO'
         percRatio = 'NO'
-#        csv_row = {"filename": str(filename), "uniquely": str(uniquely), "multi": str(multi), "totalReads": str(totalreads), "uniquelyAGAINST": str(uniquelyC), "multiAGAINST": str(multiC), "totalReadsAGAINST": str(totalreadsC), "percratio": str(percRatio)}
-#        csv_writer.writerow(csv_row)
-
 
     if svalue <12: 
         counter = 1
@@ -156,8 +145,6 @@ def run_single_align(filename):
 
 
     if output == 1: #it needs to be added to a file
- #       csv_row = {"filename": str(filename), "uniquely": str(uniquely), "multi": str(multi), "totalReads": str(totalreads), "uniquelyAGAINST": str(uniquelyC), "multiAGAINST": str(multiC), "totalReadsAGAINST": str(totalreadsC), "percratio": str(percRatio)}
-  #      csv_writer.writerow(csv_row)
         os.system("echo " + str(filename) + "  " +  str(uniquely) + "  " + str(multi) + "  " + str(totalreads) + "  " +  str(uniquelyC) + "  " +   str(multiC) + "  " + str(totalreadsC) + "  " +  str(percRatio)   + f" >> {directory}/index_hopping_output.txt")
 
 
