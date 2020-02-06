@@ -177,9 +177,7 @@ def star_align(filename, directory, inputs=[]):
 
     return alignstar
 
-
-
-if __name__ == "__main__":
+def parsl_orchestrate(directory):
     files = open(f"{directory}/filenames.txt")
     print("starting indexing")
     index_futures = []
@@ -192,4 +190,9 @@ if __name__ == "__main__":
     for index, file in enumerate(files):
         align_futures.append(star_align(file, directory, inputs=[index_futures[index]]))
     align_futures = [a.result() for a in align_futures]
+
+
+if __name__ == "__main__":
+    
+    parsl_orchestrate(directory)
 
