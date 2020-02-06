@@ -27,22 +27,6 @@ config = Config(
 parsl.set_stream_logger() 
 parsl.load(config)
 
-proteomefile = sys.argv[1]
-directory = f'/home/users/ellenrichards/{sys.argv[2]}/'
-threshold = 1000
-
-if not os.path.isdir(directory):
-    os.makedirs(directory)
-
-generate_data(proteomefile, directory)
-
-os.system(f"touch {directory}/hopper.txt")
-os.system(f"touch {directory}/final.txt")
-os.system(f"touch {directory}/never.txt")
-os.system(f"touch {directory}/maybehopper.txt")
-os.system(f"touch {directory}/index_hopping_output.txt")
-os.system(f"echo 'filename  uniquely  multi  totalReads  uniquelyAGAINST  multiAGAINST  totalreadsAGAINST  percRatio'  >> {directory}/index_hopping_output.txt")
-
 @bash_app
 def run_single_index(filename, directory):
     import os     
@@ -71,8 +55,6 @@ def run_single_index(filename, directory):
 
                 
 def run_single_align(filename):    
-    star_align(directory, mvalue, strsvalue, genomeDir)
-    
     output = 0
 
     uniquely = os.popen("awk 'FNR == 9{print $6}' " + strsvalue + "Log.final.out").read()
@@ -177,7 +159,7 @@ def star_align(filename, directory, inputs=[]):
 
     return alignstar
 
-def parsl_orchestrate(directory):
+def parsl_first_align(directory):
     files = open(f"{directory}/filenames.txt")
     print("starting indexing")
     index_futures = []
@@ -190,9 +172,27 @@ def parsl_orchestrate(directory):
     for index, file in enumerate(files):
         align_futures.append(star_align(file, directory, inputs=[index_futures[index]]))
     align_futures = [a.result() for a in align_futures]
+    
+def setup():
+    proteomefile = sys.argv[1]
+    directory = f'/home/users/ellenrichards/{sys.argv[2]}/'
+    threshold = 1000
 
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
 
+    generate_data(proteomefile, directory)
+
+    os.system(f"touch {directory}/hopper.txt")
+    os.system(f"touch {directory}/final.txt")
+    os.system(f"touch {directory}/never.txt")
+    os.system(f"touch {directory}/maybehopper.txt")
+    os.system(f"touch {directory}/index_hopping_output.txt")
+    os.system(f"echo 'filename  uniquely  multi  totalReads  uniquelyAGAINST  multiAGAINST  totalreadsAGAINST  percRatio'  >> {directory}/index_hopping_output.txt")
+    return directory
+    
 if __name__ == "__main__":
     
-    parsl_orchestrate(directory)
+    directory = setup()
+    parsl_first_align(directory) # Blocking call waits on all first aligns
 
