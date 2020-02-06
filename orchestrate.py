@@ -2,6 +2,8 @@
 
 import os
 import sys
+from pathlib import Path
+import shutil
 
 import parsl
 from parsl.app.app import bash_app
@@ -107,22 +109,33 @@ def setup():
     proteomefile = sys.argv[1]
     directory = f'/home/users/ellenrichards/{sys.argv[2]}/'
 
-    if not os.path.isdir(directory):
-        os.makedirs(directory)
+    # Deletes output directory if it exists
+    if os.path.isdir(directory):
+        shutil.rmtree(directory, ignore_errors=True)
+    
+    os.makedirs(directory)
 
     generate_data(proteomefile, directory)
 
-    os.system(f"touch {directory}/hopper.txt")
-    os.system(f"touch {directory}/final.txt")
-    os.system(f"touch {directory}/never.txt")
-    os.system(f"touch {directory}/maybehopper.txt")
-    os.system(f"touch {directory}/index_hopping_output.txt")
-    os.system(
-        f"echo 'filename  uniquely  multi  totalReads  uniquelyAGAINST  multiAGAINST  totalreadsAGAINST  percRatio'  >> {directory}/index_hopping_output.txt")
+    main_output = f"{directory}/index_hopping_output.txt"
+
+    Path(f"{directory}/hopper.txt").touch()
+    Path(f"{directory}/final.txt").touch()
+    Path(f"{directory}/never.txt").touch()
+    Path(f"{directory}/maybehopper.txt").touch()
+    Path(main_output).touch()
+
+    with open(main_output, "a") as fh:
+        fh.write('filename  uniquely  multi  totalReads  uniquelyAGAINST  multiAGAINST  totalreadsAGAINST  percRatio\n')
+
     return directory
 
 
 if __name__ == "__main__":
+
+    if len(sys.argv) != 3:
+        print("Usage: ./orchestrate.py <path to input FASTA> <output directory>")
+        exit(1)
 
     directory = setup()
     parsl_first_align(directory)  # Blocking call waits on all first aligns
