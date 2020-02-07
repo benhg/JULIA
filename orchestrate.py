@@ -107,7 +107,7 @@ def parsl_first_align(directory):
 
 def setup():
     proteomefile = sys.argv[1]
-    directory = f'/home/users/ellenrichards/{sys.argv[2]}/'
+    directory = f'{sys.argv[2]}/'
 
     # Deletes output directory if it exists
     if os.path.isdir(directory):
