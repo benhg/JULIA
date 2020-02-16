@@ -14,6 +14,8 @@ from parsl.addresses import address_by_route
 
 from data_generation import generate_data
 
+# Parsl config for use on LC's campus cluster
+# You should be able to change this configuration and reproduce the same results
 config = Config(
     executors=[HighThroughputExecutor(worker_debug=True,
                                       cores_per_worker=16,
@@ -28,13 +30,20 @@ config = Config(
                ],
 )
 
-
-parsl.set_stream_logger()
+# Enable parsl logging if you want, but it prints out a lot of (useful) info
+# parsl.set_stream_logger()
 parsl.load(config)
 
 
 @bash_app
 def run_single_index(filename, directory, threshold=1000):
+    """
+    Index a single file. This file represents a single transcript. 
+    Files are generated in the data_generate function
+    
+    :param filename - filename to index
+    :param directory - place to put output
+    """
     import os
 
     mvalue = str(f"{filename}").split("/n")[0].split('.fasta')[0]
@@ -53,6 +62,14 @@ def run_single_index(filename, directory, threshold=1000):
 
 @bash_app
 def star_align(filename, directory, inputs=[]):
+    """
+    Parsl app which wraps STAR alignment step of a single transcript.
+    
+    We use the :param inputs to allow Parsl to wait on futures from the indexing step.
+    
+    :param filename - filename to index
+    :param directory - place to put output
+    """
     import os
     import fnmatch
     filename = filename.strip()
@@ -83,6 +100,14 @@ def star_align(filename, directory, inputs=[]):
 
 
 def parsl_first_align(directory):
+    """
+    Index and run first align, Submitting all tasks to Parsl executor at the beginning.
+    
+    This is a blocking call. It first performs all of the indexing (total of about 1 minute for 600 tasks)
+    Next, it calls the alignment on each of those indexed transcripts (~12 min per alignment).
+    
+    :param directory - directory that stores output and input
+    """
     files = [f.strip() for f in open(f"{directory}/filenames.txt").readlines()]
 
     # Start the indexing processes
@@ -95,6 +120,7 @@ def parsl_first_align(directory):
     print("done indexing")
 
     # Start the alignment processes
+    print("starting first alignment")
     align_futures = []
     for index, file in enumerate(files):
         align_futures.append(
@@ -103,9 +129,17 @@ def parsl_first_align(directory):
                     index_futures[index]]))
     # Wait for the alignment to finish
     align_futures = [a.result() for a in align_futures]
+    print("First alignment finished")
 
 
 def setup():
+    """
+    Set up the run - 
+        Get input arguments
+        Create necessary directories
+        Generate individual transcript FASTA files
+        Create output files
+    """
     proteomefile = sys.argv[1]
     directory = f'{sys.argv[2]}/'
 
