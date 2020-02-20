@@ -31,7 +31,7 @@ config = Config(
 )
 
 # Enable parsl logging if you want, but it prints out a lot of (useful) info
-# parsl.set_stream_logger()
+parsl.set_stream_logger()
 parsl.load(config)
 
 
@@ -61,7 +61,7 @@ def run_single_index(filename, directory, threshold=1000):
 
 
 @bash_app
-def star_align(filename, directory, inputs=[]):
+def star_align(filename, directory, against, inputs=[]):
     """
     Parsl app which wraps STAR alignment step of a single transcript.
     
@@ -80,12 +80,12 @@ def star_align(filename, directory, inputs=[]):
 
     genomeDir = f"{directory}{mvalue}/gd"
 
-    outfilenameprefix = directory + mvalue + "/" + svalue
+    outfilenameprefix = directory + mvalue + "/" + str(against)
 
-    if int(svalue) < 10:
-        fullS = "s00" + str(svalue)
+    if int(against) < 10:
+        fullS = "s00" + str(against)
     else:
-        fullS = "s0" + str(svalue)
+        fullS = "s0" + str(against)
 
     for rrfile in os.listdir(
             '/home/users/ellenrichards/binfordlab/raw_reads/'):
@@ -93,8 +93,11 @@ def star_align(filename, directory, inputs=[]):
             rawread1 = rrfile
         if fnmatch.fnmatch(rrfile, "*" + fullS + "*R2*.fastq"):
             rawread2 = rrfile
-
-    alignstar = f'STAR --runMode alignReads --runThreadN 16 --genomeDir "{genomeDir}"  --readFilesIn /home/users/ellenrichards/binfordlab/raw_reads/"{rawread1}"  /home/users/ellenrichards/binfordlab/raw_reads/"{rawread2}" --outFileNamePrefix "{outfilenameprefix}" --outSAMtype BAM SortedByCoordinate --limitBAMsortRAM 40000000000 --outTmpDir "{directory}/{mvalue}/align_tmp/"'
+    
+    if not rawread1 or not rawread2:
+        return "sleep 1"
+    
+    alignstar = f'STAR --runMode alignReads --runThreadN 16 --genomeDir "{genomeDir}"  --readFilesIn /home/users/ellenrichards/binfordlab/raw_reads/"{rawread1}"  /home/users/ellenrichards/binfordlab/raw_reads/"{rawread2}" --outFileNamePrefix "{outfilenameprefix}" --outSAMtype BAM SortedByCoordinate --limitBAMsortRAM 40000000000 --outTmpDir "{directory}/{mvalue}/{against}align_tmp/"'
 
     return alignstar
 
@@ -118,15 +121,36 @@ def parsl_first_align(directory):
     # Wait for the indexing to finish
     index_futures = [i.result() for i in index_futures]
     print("done indexing")
-
+    
+    
     # Start the alignment processes
     print("starting first alignment")
     align_futures = []
     for index, file in enumerate(files):
-        align_futures.append(
-            star_align(
-                file, directory, inputs=[
-                    index_futures[index]]))
+        svalue = int(str(file.split("_")[0].split('s')[1]))
+        
+        lane = 0
+        if svalue < 12:
+            lane = 1
+        else:
+            lane = 2
+
+        for i in range(1, 12):
+            if lane == 2:
+                current = i + 11
+            else:
+                current = i
+            
+            against = current
+
+            align_futures.append(
+                star_align(
+                    file, directory, against, inputs=[
+                        index_futures[index]]))
+    
+    
+    
+            
     # Wait for the alignment to finish
     align_futures = [a.result() for a in align_futures]
     print("First alignment finished")
